@@ -1,3 +1,5 @@
+import { formatSessionTime } from '../utils/sessionTime.js'
+
 export default function ScheduleCard({ session, onOpenWorkspace }) {
   const isPrimary = session.primary || Boolean(session.sessionLink)
   const isBlue = session.accent === 'blue' || session.sessionRelationalType === 'Review'
@@ -12,15 +14,6 @@ export default function ScheduleCard({ session, onOpenWorkspace }) {
     'Session'
 
   const courseName = session.lessons?.[0]?.course?.name
-
-  const formatTime = () => {
-    if (session.time) return session.time
-    if (session.timeFrom && session.timeTo) {
-      return `${session.timeFrom.slice(0, 5)} - ${session.timeTo.slice(0, 5)}`
-    }
-    if (session.timeFrom) return session.timeFrom.slice(0, 5)
-    return 'Upcoming'
-  }
 
   const sessionType =
     session.type ||
@@ -65,7 +58,7 @@ export default function ScheduleCard({ session, onOpenWorkspace }) {
 
       <p className="text-sm text-gray-500 mb-4 flex items-center gap-1.5">
         <i className="fa-regular fa-clock"></i>
-        <span>{formatTime()}</span>
+        <span>{formatSessionTime(session, ' - ', 'Upcoming')}</span>
         {session.sessionDate && (
           <span className="text-xs text-gray-400 ml-1">
             ({new Date(session.sessionDate).toLocaleDateString()})

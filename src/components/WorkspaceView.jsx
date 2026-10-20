@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { useSessionStudents } from '../hooks/useSessions'
 import sessionsApi from '../api/sessionsApi'
+import { formatSessionTime } from '../utils/sessionTime.js'
 
 const STATIC_SESSION = {
   title: 'Math Session',
@@ -11,7 +13,7 @@ const STATIC_SESSION = {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function WorkspaceHeader({ session, onBack }) {
+function WorkspaceHeader({ session, onBack, studentCount, studentNames, studentsLoading, studentsError }) {
   const { user } = useAuth()
   const displayName = user?.name || user?.first_name || user?.full_name || 'System Architect'
 
@@ -69,14 +71,28 @@ function WorkspaceHeader({ session, onBack }) {
             <span className="w-1 h-1 rounded-full bg-white/20"></span>
             <span className="flex items-center gap-1.5">
               <i className="fa-solid fa-users"></i>
-              {session.studentCount} Students
+              {studentsLoading
+                ? 'Loading students…'
+                : studentsError
+                  ? 'Students unavailable'
+                  : `${studentCount} ${studentCount === 1 ? 'Student' : 'Students'}`}
+              {studentNames.length > 0 && !studentsLoading && !studentsError && (
+                <span className="max-w-48 truncate text-white/40" title={studentNames.join(', ')}>
+                  ({studentNames.join(', ')})
+                </span>
+              )}
             </span>
           </div>
         </div>
 
-        <button className="flex items-center gap-2 text-xs font-semibold bg-math-red/90 hover:bg-math-red border border-math-red/50 text-white px-4 py-2 rounded-lg transition-all cursor-pointer shadow-sm">
+        <button
+          type="button"
+          disabled
+          title="Ending a session is not available until the backend provides a session completion action."
+          className="flex items-center gap-2 text-xs font-semibold bg-white/10 border border-white/10 text-white/50 px-4 py-2 rounded-lg cursor-not-allowed"
+        >
           <i className="fa-solid fa-circle-stop"></i>
-          End Session
+          End Session (Unavailable)
         </button>
       </div>
     </header>
@@ -223,15 +239,10 @@ function SessionUploadsPanel({ session, setPublishState }) {
           />
         )}
 
-        {uploadedUrl && (
-          <a
-            href={uploadedUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs font-semibold text-math-red hover:underline break-all"
-          >
-            View current explanation PDF
-          </a>
+        {uploadedUrl && !uploadedFile && (
+          <p className="text-xs text-gray-500">
+            An explanation PDF is already uploaded for this session.
+          </p>
         )}
 
         {isUploaded && (
@@ -276,7 +287,7 @@ function SessionUploadsPanel({ session, setPublishState }) {
   )
 }
 
-function AdminResourcesPanel() {
+function AdminResourcesPanel({ resources, selectedResource, onSelectResource }) {
   return (
     <div className="flex flex-col h-full">
       <div className="px-5 py-4 border-b border-gray-100">
@@ -284,15 +295,41 @@ function AdminResourcesPanel() {
           Admin Resources
         </h2>
       </div>
-      <div className="flex-1 p-5 flex flex-col items-center justify-center text-center gap-3">
-        <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400 text-2xl">
-          <i className="fa-solid fa-folder-open"></i>
+      {resources.length > 0 ? (
+        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          {resources.map((resource) => (
+            <button
+              key={`${resource.materialIndex}-${resource.version}`}
+              type="button"
+              onClick={() => onSelectResource(resource)}
+              aria-pressed={selectedResource?.key === resource.key}
+              className={`w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-colors ${
+                selectedResource?.key === resource.key
+                  ? 'border-math-red bg-red-50'
+                  : 'border-gray-100 hover:border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <span className="w-9 h-9 shrink-0 rounded-lg bg-red-50 text-math-red flex items-center justify-center">
+                <i className="fa-regular fa-file-pdf"></i>
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-gray-800 truncate">{resource.name}</span>
+                <span className="block text-xs text-gray-400">PDF preview</span>
+              </span>
+            </button>
+          ))}
         </div>
-        <p className="text-sm font-semibold text-gray-700">No Admin Resources yet</p>
-        <p className="text-xs text-gray-400 max-w-[200px]">
-          Resources shared by the admin team will appear here.
-        </p>
-      </div>
+      ) : (
+        <div className="flex-1 p-5 flex flex-col items-center justify-center text-center gap-3">
+          <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400 text-2xl">
+            <i className="fa-solid fa-folder-open"></i>
+          </div>
+          <p className="text-sm font-semibold text-gray-700">No Admin Resources available</p>
+          <p className="text-xs text-gray-400 max-w-[220px]">
+            No resource files were included with this session. The backend must provide attached lesson PDFs and ideas.
+          </p>
+        </div>
+      )}
     </div>
   )
 }
@@ -303,24 +340,12 @@ function PdfViewer({ material, version }) {
   return (
     <div className="flex flex-1 min-h-0 flex-col bg-white">
       {pdfUrl ? (
-        <>
-          <div className="flex justify-end px-4 py-2 border-b border-gray-100">
-            <a
-              href={pdfUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs font-semibold text-math-red hover:underline"
-            >
-              Open PDF in new tab
-            </a>
-          </div>
-          <iframe
-            key={pdfUrl}
-            src={pdfUrl}
-            title={`${material?.name || 'Session material'} - ${pdfTitle}`}
-            className="w-full flex-1 border-0"
-          />
-        </>
+        <iframe
+          key={pdfUrl}
+          src={pdfUrl}
+          title={`${material?.name || 'Session material'} - ${pdfTitle}`}
+          className="w-full flex-1 border-0"
+        />
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
           <i className="fa-regular fa-file-pdf text-4xl text-gray-300 mb-3"></i>
@@ -336,12 +361,19 @@ function PdfViewer({ material, version }) {
 
 // ─── Main WorkspaceView export ────────────────────────────────────────────────
 export default function WorkspaceView({ session, onBack }) {
+  const {
+    students,
+    count: fetchedStudentCount,
+    loading: studentsLoading,
+    error: studentsError,
+  } = useSessionStudents(session?.id)
   const [activeTab, setActiveTab] = useState('uploads')
   const [pdfVersion, setPdfVersion] = useState('blank')
   const [selectedMaterialIndex, setSelectedMaterialIndex] = useState(0)
   const [publishState, setPublishState] = useState(null)
 
   const lessonMaterials = (session?.lessons || []).map((lesson, index) => ({
+    ...lesson,
     source: 'lesson',
     sourceId: lesson.id,
     name: lesson.name || `Lesson ${index + 1}`,
@@ -357,8 +389,9 @@ export default function WorkspaceView({ session, onBack }) {
     : lessonMaterials.length
       ? lessonMaterials.map((material, index) => ({
         ...material,
-        session_pdf: index === 0 ? session.session_pdf : null,
-        session_answers_pdf: index === 0 ? session.session_answers_pdf : null,
+        session_pdf: material.session_pdf || (index === 0 ? session.session_pdf : null),
+        session_answers_pdf:
+          material.session_answers_pdf || (index === 0 ? session.session_answers_pdf : null),
       }))
       : session?.session_pdf || session?.session_answers_pdf
         ? [{
@@ -369,23 +402,55 @@ export default function WorkspaceView({ session, onBack }) {
         }]
         : []
   const selectedMaterial = materials[selectedMaterialIndex] || materials[0] || null
+  const adminResources = materials.flatMap((material, materialIndex) => {
+    const resources = []
+    if (material.session_pdf) {
+      resources.push({
+        key: `${materialIndex}-blank`,
+        materialIndex,
+        version: 'blank',
+        name: `${material.name || `Material ${materialIndex + 1}`} — Session PDF`,
+      })
+    }
+    if (material.session_answers_pdf) {
+      resources.push({
+        key: `${materialIndex}-answers`,
+        materialIndex,
+        version: 'answers',
+        name: `${material.name || `Material ${materialIndex + 1}`} — Answers PDF`,
+      })
+    }
+    return resources
+  })
+  const selectedResource = adminResources.find(
+    (resource) => resource.materialIndex === selectedMaterialIndex && resource.version === pdfVersion
+  )
+  const studentNames = students
+    .map((student) => (
+      typeof student === 'string'
+        ? student
+        : student?.student?.name || student?.name || student?.student_name || student?.full_name
+    ))
+    .filter(Boolean)
 
   const displaySession = {
     ...STATIC_SESSION,
     title: session?.title || session?.lessons?.[0]?.name || session?.name || STATIC_SESSION.title,
     type: (session?.type || session?.sessionRelationalType || session?.scheduleType || STATIC_SESSION.type).toUpperCase(),
-    time:
-      session?.time ||
-      (session?.timeFrom
-        ? `${session.timeFrom.slice(0, 5)} – ${session.timeTo?.slice(0, 5) || ''}`
-        : STATIC_SESSION.time),
-    studentCount: session?.students?.length ?? session?.attendees?.length ?? STATIC_SESSION.studentCount,
+    time: formatSessionTime(session),
   }
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
       {/* Header */}
-      <WorkspaceHeader session={displaySession} onBack={onBack} />
+      <WorkspaceHeader
+        session={displaySession}
+        onBack={onBack}
+        studentCount={fetchedStudentCount ?? students.length}
+        studentNames={studentNames}
+        studentsLoading={studentsLoading}
+        studentsError={studentsError}
+      />
 
       {/* Tabs */}
       <div className="bg-white border-b border-gray-200 px-6 flex items-center gap-1 shrink-0">
@@ -423,7 +488,14 @@ export default function WorkspaceView({ session, onBack }) {
           {activeTab === 'uploads' ? (
             <SessionUploadsPanel session={session} setPublishState={setPublishState} />
           ) : (
-            <AdminResourcesPanel />
+            <AdminResourcesPanel
+              resources={adminResources}
+              selectedResource={selectedResource}
+              onSelectResource={(resource) => {
+                setSelectedMaterialIndex(resource.materialIndex)
+                setPdfVersion(resource.version)
+              }}
+            />
           )}
         </aside>
 

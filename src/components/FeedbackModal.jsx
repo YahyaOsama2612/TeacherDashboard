@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import StarRating from './StarRating.jsx'
 import { useSessionRatings, toSatisfaction, RATING_MAX } from '../hooks/useSessionRatings'
+import { formatSessionTime } from '../utils/sessionTime.js'
 
 const formatDateTime = (iso) =>
   iso
@@ -127,11 +128,11 @@ export default function FeedbackModal({ isOpen, session, onClose, onOpenWorkspac
   const timeTo = session.timeTo || apiSession.timeTo
   const sessionDate = session.sessionDate || apiSession.sessionDate
 
-  const formatTime = () => {
-    if (session.time) return session.time
-    if (timeFrom && timeTo) return `${timeFrom.slice(0, 5)} - ${timeTo.slice(0, 5)}`
-    return timeFrom?.slice(0, 5) || 'Scheduled'
-  }
+  const formatTime = () =>
+    formatSessionTime(
+      { ...session, timeFrom, timeTo, sessionDate },
+      ' - '
+    )
 
   const avgRating = ratings?.average ?? 0
   const totalRated = ratings?.totalRated ?? 0
