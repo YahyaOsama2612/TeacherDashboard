@@ -127,11 +127,10 @@ function UploadZone({ onFileSelect }) {
       }}
       onDragLeave={() => setDragging(false)}
       onDrop={handleDrop}
-      className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all select-none ${
-        dragging
+      className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all select-none ${dragging
           ? "border-math-red bg-red-50 scale-[1.01]"
           : "border-gray-200 hover:border-math-red/50 hover:bg-red-50/30"
-      }`}
+        }`}
     >
       <input
         ref={inputRef}
@@ -170,11 +169,10 @@ function FileCard({ file, onRemove }) {
             {file.name}
           </p>
           <span
-            className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mt-0.5 ${
-              file.status === "PUBLISHED"
+            className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mt-0.5 ${file.status === "PUBLISHED"
                 ? "bg-green-100 text-green-700"
                 : "bg-yellow-100 text-yellow-700"
-            }`}
+              }`}
           >
             {file.status}
           </span>
@@ -193,11 +191,15 @@ function FileCard({ file, onRemove }) {
   );
 }
 
-function SessionUploadsPanel({ session, setPublishState }) {
-  const [uploadedFile, setUploadedFile] = useState(null);
-  const [uploadedUrl, setUploadedUrl] = useState(
-    session.teacher_explanation_pdf || null,
-  );
+function SessionUploadsPanel({
+  session,
+  setPublishState,
+  uploadedFile,
+  setUploadedFile,
+  uploadedUrl,
+  setUploadedUrl,
+  onPreviewTeacherPdf,
+}) {
   const [isUploaded, setIsUploaded] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -215,6 +217,7 @@ function SessionUploadsPanel({ session, setPublishState }) {
     setIsUploaded(false);
     setUploadError("");
     setPublishState(null);
+    onPreviewTeacherPdf?.();
   };
 
   const handleUpload = async () => {
@@ -291,13 +294,12 @@ function SessionUploadsPanel({ session, setPublishState }) {
         <button
           onClick={handleUpload}
           disabled={!uploadedFile || uploading || !session.id || isUploaded}
-          className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-sm transition-all shadow-sm ${
-            uploading
+          className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-sm transition-all shadow-sm ${uploading
               ? "bg-math-red/70 text-white cursor-wait"
               : !uploadedFile || !session.id || isUploaded
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                 : "bg-math-red hover:bg-math-red-hover text-white hover:shadow-md active:scale-[0.99] cursor-pointer"
-          }`}
+            }`}
         >
           {uploading ? (
             <>
@@ -341,11 +343,10 @@ function AdminResourcesPanel({
               type="button"
               onClick={() => onSelectResource(resource)}
               aria-pressed={selectedResource?.key === resource.key}
-              className={`w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-colors ${
-                selectedResource?.key === resource.key
+              className={`w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-colors ${selectedResource?.key === resource.key
                   ? "border-math-red bg-red-50"
                   : "border-gray-100 hover:border-gray-300 hover:bg-gray-50"
-              }`}
+                }`}
             >
               <span className="w-9 h-9 shrink-0 rounded-lg bg-red-50 text-math-red flex items-center justify-center">
                 <i className="fa-regular fa-file-pdf"></i>
@@ -380,7 +381,7 @@ function AdminResourcesPanel({
 // Fetches the PDF as a blob and shows it through a local blob: URL.
 // This makes the browser render it inline even when the backend sends
 // Content-Disposition: attachment or X-Frame-Options headers.
-function usePdfBlobUrl(pdfUrl) {
+function usePdfBlobUrl(pdfUrl, pdfFile) {
   const [state, setState] = useState({
     blobUrl: null,
     loading: false,
@@ -388,6 +389,15 @@ function usePdfBlobUrl(pdfUrl) {
   });
 
   useEffect(() => {
+    // A file picked on this device: preview it straight from memory
+    if (pdfFile) {
+      const localUrl = URL.createObjectURL(
+        new Blob([pdfFile], { type: "application/pdf" }),
+      );
+      setState({ blobUrl: localUrl, loading: false, error: false });
+      return () => URL.revokeObjectURL(localUrl);
+    }
+
     if (!pdfUrl) {
       setState({ blobUrl: null, loading: false, error: false });
       return undefined;
@@ -416,20 +426,32 @@ function usePdfBlobUrl(pdfUrl) {
       controller.abort();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [pdfUrl]);
+  }, [pdfUrl, pdfFile]);
 
   return state;
 }
 
-function PdfViewer({ material, version }) {
-  const pdfUrl =
-    version === "blank" ? material?.session_pdf : material?.session_answers_pdf;
-  const pdfTitle = version === "blank" ? "Session PDF" : "Session Answers PDF";
-  const { blobUrl, loading, error } = usePdfBlobUrl(pdfUrl);
+function PdfViewer({ material, version, teacherFile, teacherUrl }) {
+  const isTeacher = version === "teacher";
+  const pdfFile = isTeacher ? teacherFile : null;
+  const pdfUrl = isTeacher
+    ? teacherFile
+      ? null
+      : teacherUrl
+    : version === "blank"
+      ? material?.session_pdf
+      : material?.session_answers_pdf;
+  const pdfTitle = isTeacher
+    ? "Teacher Explanation PDF"
+    : version === "blank"
+      ? "Session PDF"
+      : "Session Answers PDF";
+  const { blobUrl, loading, error } = usePdfBlobUrl(pdfUrl, pdfFile);
+  const hasPdf = Boolean(pdfUrl || pdfFile);
 
   return (
     <div className="flex flex-1 min-h-0 flex-col bg-white">
-      {pdfUrl ? (
+      {hasPdf ? (
         loading ? (
           <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-3">
             <i className="fa-solid fa-circle-notch animate-spin text-2xl"></i>
@@ -455,9 +477,11 @@ function PdfViewer({ material, version }) {
           <i className="fa-regular fa-file-pdf text-4xl text-gray-300 mb-3"></i>
           <p className="font-semibold text-gray-700">{pdfTitle} unavailable</p>
           <p className="text-sm text-gray-500 mt-1">
-            {material
-              ? `No ${version === "blank" ? "session PDF" : "answers PDF"} was provided for ${material.name || "this material"}.`
-              : "No session materials were provided."}
+            {isTeacher
+              ? "No teacher explanation PDF has been uploaded yet."
+              : material
+                ? `No ${version === "blank" ? "session PDF" : "answers PDF"} was provided for ${material.name || "this material"}.`
+                : "No session materials were provided."}
           </p>
         </div>
       )}
@@ -477,6 +501,16 @@ export default function WorkspaceView({ session, onBack }) {
   const [pdfVersion, setPdfVersion] = useState("blank");
   const [selectedMaterialIndex, setSelectedMaterialIndex] = useState(0);
   const [publishState, setPublishState] = useState(null);
+  const [teacherFile, setTeacherFile] = useState(null);
+  const [teacherUrl, setTeacherUrl] = useState(
+    session?.teacher_explanation_pdf || null,
+  );
+  const hasTeacherPdf = Boolean(teacherFile || teacherUrl);
+
+  // Fall back to the session PDF if the teacher PDF is removed
+  useEffect(() => {
+    if (pdfVersion === "teacher" && !hasTeacherPdf) setPdfVersion("blank");
+  }, [pdfVersion, hasTeacherPdf]);
 
   const lessonMaterials = (session?.lessons || []).map((lesson, index) => ({
     ...lesson,
@@ -487,35 +521,35 @@ export default function WorkspaceView({ session, onBack }) {
   const materials =
     Array.isArray(session?.materials) && session.materials.length
       ? session.materials.map((material) => ({
+        ...material,
+        session_pdf:
+          material.session_pdf ||
+          (session.materials.length === 1 ? session.session_pdf : null),
+        session_answers_pdf:
+          material.session_answers_pdf ||
+          (session.materials.length === 1
+            ? session.session_answers_pdf
+            : null),
+      }))
+      : lessonMaterials.length
+        ? lessonMaterials.map((material, index) => ({
           ...material,
           session_pdf:
             material.session_pdf ||
-            (session.materials.length === 1 ? session.session_pdf : null),
+            (index === 0 ? session.session_pdf : null),
           session_answers_pdf:
             material.session_answers_pdf ||
-            (session.materials.length === 1
-              ? session.session_answers_pdf
-              : null),
+            (index === 0 ? session.session_answers_pdf : null),
         }))
-      : lessonMaterials.length
-        ? lessonMaterials.map((material, index) => ({
-            ...material,
-            session_pdf:
-              material.session_pdf ||
-              (index === 0 ? session.session_pdf : null),
-            session_answers_pdf:
-              material.session_answers_pdf ||
-              (index === 0 ? session.session_answers_pdf : null),
-          }))
         : session?.session_pdf || session?.session_answers_pdf
           ? [
-              {
-                source: session.sessionRelationalType || "session",
-                name: session.name || "Session material",
-                session_pdf: session.session_pdf,
-                session_answers_pdf: session.session_answers_pdf,
-              },
-            ]
+            {
+              source: session.sessionRelationalType || "session",
+              name: session.name || "Session material",
+              session_pdf: session.session_pdf,
+              session_answers_pdf: session.session_answers_pdf,
+            },
+          ]
           : [];
   const selectedMaterial =
     materials[selectedMaterialIndex] || materials[0] || null;
@@ -549,9 +583,9 @@ export default function WorkspaceView({ session, onBack }) {
       typeof student === "string"
         ? student
         : student?.student?.name ||
-          student?.name ||
-          student?.student_name ||
-          student?.full_name,
+        student?.name ||
+        student?.student_name ||
+        student?.full_name,
     )
     .filter(Boolean);
 
@@ -587,11 +621,10 @@ export default function WorkspaceView({ session, onBack }) {
       <div className="bg-white border-b border-gray-200 px-6 flex items-center gap-1 shrink-0">
         <button
           onClick={() => setActiveTab("uploads")}
-          className={`flex items-center gap-2 text-xs font-semibold px-4 py-3.5 border-b-2 transition-colors cursor-pointer ${
-            activeTab === "uploads"
+          className={`flex items-center gap-2 text-xs font-semibold px-4 py-3.5 border-b-2 transition-colors cursor-pointer ${activeTab === "uploads"
               ? "border-math-red text-math-red"
               : "border-transparent text-gray-500 hover:text-gray-800"
-          }`}
+            }`}
         >
           <i className="fa-solid fa-cloud-arrow-up"></i>
           Session &amp; Uploads
@@ -601,11 +634,10 @@ export default function WorkspaceView({ session, onBack }) {
         </button>
         <button
           onClick={() => setActiveTab("admin")}
-          className={`flex items-center gap-2 text-xs font-semibold px-4 py-3.5 border-b-2 transition-colors cursor-pointer ${
-            activeTab === "admin"
+          className={`flex items-center gap-2 text-xs font-semibold px-4 py-3.5 border-b-2 transition-colors cursor-pointer ${activeTab === "admin"
               ? "border-math-red text-math-red"
               : "border-transparent text-gray-500 hover:text-gray-800"
-          }`}
+            }`}
         >
           <i className="fa-solid fa-shield-halved"></i>
           Admin Resources
@@ -620,6 +652,11 @@ export default function WorkspaceView({ session, onBack }) {
             <SessionUploadsPanel
               session={session}
               setPublishState={setPublishState}
+              uploadedFile={teacherFile}
+              setUploadedFile={setTeacherFile}
+              uploadedUrl={teacherUrl}
+              setUploadedUrl={setTeacherUrl}
+              onPreviewTeacherPdf={() => setPdfVersion("teacher")}
             />
           ) : (
             <AdminResourcesPanel
@@ -664,30 +701,44 @@ export default function WorkspaceView({ session, onBack }) {
               <div className="flex items-center bg-white/10 rounded-lg p-0.5 gap-0.5">
                 <button
                   onClick={() => setPdfVersion("blank")}
-                  className={`text-xs font-semibold px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${
-                    pdfVersion === "blank"
+                  className={`text-xs font-semibold px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${pdfVersion === "blank"
                       ? "bg-white text-gray-900 shadow-sm"
                       : "text-white/60 hover:text-white"
-                  }`}
+                    }`}
                 >
                   Session PDF
                 </button>
                 <button
                   onClick={() => setPdfVersion("answers")}
-                  className={`text-xs font-semibold px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${
-                    pdfVersion === "answers"
+                  className={`text-xs font-semibold px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${pdfVersion === "answers"
                       ? "bg-white text-gray-900 shadow-sm"
                       : "text-white/60 hover:text-white"
-                  }`}
+                    }`}
                 >
                   Answers PDF
                 </button>
+                {hasTeacherPdf && (
+                  <button
+                    onClick={() => setPdfVersion("teacher")}
+                    className={`text-xs font-semibold px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${pdfVersion === "teacher"
+                        ? "bg-white text-gray-900 shadow-sm"
+                        : "text-white/60 hover:text-white"
+                      }`}
+                  >
+                    Teacher PDF
+                  </button>
+                )}
               </div>
             </div>
           </div>
 
           {/* PDF content area */}
-          <PdfViewer material={selectedMaterial} version={pdfVersion} />
+          <PdfViewer
+            material={selectedMaterial}
+            version={pdfVersion}
+            teacherFile={teacherFile}
+            teacherUrl={teacherUrl}
+          />
         </main>
       </div>
     </div>
