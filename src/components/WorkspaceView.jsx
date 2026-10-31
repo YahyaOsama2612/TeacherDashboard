@@ -505,6 +505,57 @@ export default function WorkspaceView({ session, onBack }) {
   const [teacherUrl, setTeacherUrl] = useState(
     session?.teacher_explanation_pdf || null,
   );
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const pdfContainerRef = useRef(null);
+
+  const toggleFullscreen = async () => {
+    if (!pdfContainerRef.current) return;
+    if (!isFullscreen) {
+      try {
+        if (pdfContainerRef.current.requestFullscreen) {
+          await pdfContainerRef.current.requestFullscreen();
+        }
+      } catch (err) {
+        // Fallback gracefully to in-page CSS fullscreen
+      }
+      setIsFullscreen(true);
+    } else {
+      try {
+        if (document.fullscreenElement) {
+          await document.exitFullscreen();
+        }
+      } catch (err) {
+        // Ignored
+      }
+      setIsFullscreen(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && isFullscreen) {
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
+        setIsFullscreen(false);
+      }
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      window.removeEventListener("keydown", handleKeyDown);
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+    };
+  }, [isFullscreen]);
+
   const hasTeacherPdf = Boolean(teacherFile || teacherUrl);
 
   // Fall back to the session PDF if the teacher PDF is removed
@@ -671,14 +722,21 @@ export default function WorkspaceView({ session, onBack }) {
         </aside>
 
         {/* Right: PDF viewer */}
-        <main className="flex-1 flex flex-col overflow-hidden">
+        <main
+          ref={pdfContainerRef}
+          className={
+            isFullscreen
+              ? "fixed inset-0 z-50 flex flex-col bg-[#1a1a2e] w-full h-full overflow-hidden"
+              : "flex-1 flex flex-col overflow-hidden"
+          }
+        >
           {/* PDF toolbar */}
           <div className="bg-[#1a1a2e] text-white px-6 py-3 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-2 text-sm font-semibold text-white/90">
-              <i className="fa-solid fa-file-pdf text-math-red"></i>
-              {selectedMaterial?.name || "Session Materials"}
+            <div className="flex items-center gap-2 text-sm font-semibold text-white/90 truncate mr-3">
+              <i className="fa-solid fa-file-pdf text-math-red shrink-0"></i>
+              <span className="truncate">{selectedMaterial?.name || "Session Materials"}</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               {materials.length > 1 && (
                 <select
                   value={selectedMaterialIndex}
@@ -729,6 +787,20 @@ export default function WorkspaceView({ session, onBack }) {
                   </button>
                 )}
               </div>
+
+              {/* Fullscreen toggle button */}
+              <button
+                type="button"
+                onClick={toggleFullscreen}
+                title={isFullscreen ? "Exit Fullscreen (Esc)" : "View Fullscreen"}
+                aria-label={isFullscreen ? "Exit Fullscreen" : "View Fullscreen"}
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer border border-white/10 hover:border-white/25 active:scale-95"
+              >
+                <i className={`fa-solid ${isFullscreen ? "fa-compress" : "fa-expand"} text-xs`}></i>
+                <span className="hidden sm:inline">
+                  {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                </span>
+              </button>
             </div>
           </div>
 
