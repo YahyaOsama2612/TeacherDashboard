@@ -128,8 +128,8 @@ function UploadZone({ onFileSelect }) {
       onDragLeave={() => setDragging(false)}
       onDrop={handleDrop}
       className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all select-none ${dragging
-          ? "border-math-red bg-red-50 scale-[1.01]"
-          : "border-gray-200 hover:border-math-red/50 hover:bg-red-50/30"
+        ? "border-math-red bg-red-50 scale-[1.01]"
+        : "border-gray-200 hover:border-math-red/50 hover:bg-red-50/30"
         }`}
     >
       <input
@@ -170,8 +170,8 @@ function FileCard({ file, onRemove }) {
           </p>
           <span
             className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mt-0.5 ${file.status === "PUBLISHED"
-                ? "bg-green-100 text-green-700"
-                : "bg-yellow-100 text-yellow-700"
+              ? "bg-green-100 text-green-700"
+              : "bg-yellow-100 text-yellow-700"
               }`}
           >
             {file.status}
@@ -203,6 +203,13 @@ function SessionUploadsPanel({
   const [isUploaded, setIsUploaded] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [sessionLink, setSessionLink] = useState(
+    session?.session_link || session?.sessionLink || "",
+  );
+
+  useEffect(() => {
+    setSessionLink(session?.session_link || session?.sessionLink || "");
+  }, [session?.session_link, session?.sessionLink]);
 
   const handleFileSelect = (file) => {
     if (
@@ -229,6 +236,9 @@ function SessionUploadsPanel({
       const response = await sessionsApi.uploadExplanationPdf(
         session.id,
         uploadedFile,
+        {
+          session_link: sessionLink.trim(),
+        },
       );
       const responseData = response?.data?.data || response?.data || response;
       setUploadedUrl(responseData?.teacher_explanation_pdf || null);
@@ -276,6 +286,29 @@ function SessionUploadsPanel({
           />
         )}
 
+        {/* Session Link input field */}
+        <div className="space-y-1.5 pt-2 border-t border-gray-100">
+          <label className="block text-xs font-semibold text-gray-700">
+            Session Link
+          </label>
+          <div className="relative">
+            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+              <i className="fa-solid fa-link text-xs"></i>
+            </span>
+            <input
+              type="text"
+              value={sessionLink}
+              onChange={(e) => {
+                setSessionLink(e.target.value);
+                if (isUploaded) setIsUploaded(false);
+              }}
+              placeholder="e.g. Zoom or Google Meet link"
+              className="w-full pl-8 pr-3 py-2.5 text-xs bg-white border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:border-math-red focus:ring-1 focus:ring-math-red transition-all shadow-sm"
+            />
+          </div>
+
+        </div>
+
         {uploadedUrl && !uploadedFile && (
           <p className="text-xs text-gray-500">
             An explanation PDF is already uploaded for this session.
@@ -295,10 +328,10 @@ function SessionUploadsPanel({
           onClick={handleUpload}
           disabled={!uploadedFile || uploading || !session.id || isUploaded}
           className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-sm transition-all shadow-sm ${uploading
-              ? "bg-math-red/70 text-white cursor-wait"
-              : !uploadedFile || !session.id || isUploaded
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-math-red hover:bg-math-red-hover text-white hover:shadow-md active:scale-[0.99] cursor-pointer"
+            ? "bg-math-red/70 text-white cursor-wait"
+            : !uploadedFile || !session.id || isUploaded
+              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              : "bg-math-red hover:bg-math-red-hover text-white hover:shadow-md active:scale-[0.99] cursor-pointer"
             }`}
         >
           {uploading ? (
@@ -344,8 +377,8 @@ function AdminResourcesPanel({
               onClick={() => onSelectResource(resource)}
               aria-pressed={selectedResource?.key === resource.key}
               className={`w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-colors ${selectedResource?.key === resource.key
-                  ? "border-math-red bg-red-50"
-                  : "border-gray-100 hover:border-gray-300 hover:bg-gray-50"
+                ? "border-math-red bg-red-50"
+                : "border-gray-100 hover:border-gray-300 hover:bg-gray-50"
                 }`}
             >
               <span className="w-9 h-9 shrink-0 rounded-lg bg-red-50 text-math-red flex items-center justify-center">
@@ -539,7 +572,7 @@ export default function WorkspaceView({ session, onBack }) {
     const handleKeyDown = (e) => {
       if (e.key === "Escape" && isFullscreen) {
         if (document.fullscreenElement) {
-          document.exitFullscreen().catch(() => {});
+          document.exitFullscreen().catch(() => { });
         }
         setIsFullscreen(false);
       }
@@ -551,7 +584,7 @@ export default function WorkspaceView({ session, onBack }) {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
       window.removeEventListener("keydown", handleKeyDown);
       if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {});
+        document.exitFullscreen().catch(() => { });
       }
     };
   }, [isFullscreen]);
@@ -673,8 +706,8 @@ export default function WorkspaceView({ session, onBack }) {
         <button
           onClick={() => setActiveTab("uploads")}
           className={`flex items-center gap-2 text-xs font-semibold px-4 py-3.5 border-b-2 transition-colors cursor-pointer ${activeTab === "uploads"
-              ? "border-math-red text-math-red"
-              : "border-transparent text-gray-500 hover:text-gray-800"
+            ? "border-math-red text-math-red"
+            : "border-transparent text-gray-500 hover:text-gray-800"
             }`}
         >
           <i className="fa-solid fa-cloud-arrow-up"></i>
@@ -686,8 +719,8 @@ export default function WorkspaceView({ session, onBack }) {
         <button
           onClick={() => setActiveTab("admin")}
           className={`flex items-center gap-2 text-xs font-semibold px-4 py-3.5 border-b-2 transition-colors cursor-pointer ${activeTab === "admin"
-              ? "border-math-red text-math-red"
-              : "border-transparent text-gray-500 hover:text-gray-800"
+            ? "border-math-red text-math-red"
+            : "border-transparent text-gray-500 hover:text-gray-800"
             }`}
         >
           <i className="fa-solid fa-shield-halved"></i>
@@ -760,8 +793,8 @@ export default function WorkspaceView({ session, onBack }) {
                 <button
                   onClick={() => setPdfVersion("blank")}
                   className={`text-xs font-semibold px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${pdfVersion === "blank"
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-white/60 hover:text-white"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-white/60 hover:text-white"
                     }`}
                 >
                   Session PDF
@@ -769,8 +802,8 @@ export default function WorkspaceView({ session, onBack }) {
                 <button
                   onClick={() => setPdfVersion("answers")}
                   className={`text-xs font-semibold px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${pdfVersion === "answers"
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-white/60 hover:text-white"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-white/60 hover:text-white"
                     }`}
                 >
                   Answers PDF
@@ -779,8 +812,8 @@ export default function WorkspaceView({ session, onBack }) {
                   <button
                     onClick={() => setPdfVersion("teacher")}
                     className={`text-xs font-semibold px-3.5 py-1.5 rounded-md transition-all cursor-pointer ${pdfVersion === "teacher"
-                        ? "bg-white text-gray-900 shadow-sm"
-                        : "text-white/60 hover:text-white"
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-white/60 hover:text-white"
                       }`}
                   >
                     Teacher PDF

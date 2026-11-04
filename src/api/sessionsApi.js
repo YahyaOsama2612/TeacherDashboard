@@ -77,8 +77,9 @@ export const sessionsApi = {
    * Endpoint: POST /api/teacher/sessions/:id/explanation-pdf
    * @param {string|number} id - Session ID
    * @param {File} file - Teacher explanation PDF
+   * @param {Object|string} [extraData] - Optional payload options (e.g. { session_link: '' })
    */
-  async uploadExplanationPdf(id, file) {
+  async uploadExplanationPdf(id, file, extraData = {}) {
     const pdfDataUrl = await new Promise((resolve, reject) => {
       const reader = new FileReader()
       reader.onload = () => {
@@ -92,8 +93,14 @@ export const sessionsApi = {
       reader.readAsDataURL(file)
     })
 
+    const session_link =
+      typeof extraData === 'string'
+        ? extraData
+        : (extraData?.session_link ?? '')
+
     return await axiosClient.post(`/api/teacher/sessions/${id}/explanation-pdf`, {
       teacher_explanation_pdf: pdfDataUrl,
+      session_link,
     })
   },
 }
