@@ -1,5 +1,18 @@
 import { formatSessionTime } from '../utils/sessionTime.js'
 
+function formatSessionDate(sessionDate) {
+  if (!sessionDate) return ''
+  if (typeof sessionDate === 'string' && /^\d{4}-\d{2}-\d{2}/.test(sessionDate)) {
+    const [year, month, day] = sessionDate.slice(0, 10).split('-')
+    return `${Number(month)}/${Number(day)}/${year}`
+  }
+  try {
+    return new Date(sessionDate).toLocaleDateString()
+  } catch {
+    return ''
+  }
+}
+
 export default function ScheduleCard({ session, onOpenWorkspace }) {
   const isPrimary = session.primary || Boolean(session.sessionLink)
   const isBlue = session.accent === 'blue' || session.sessionRelationalType === 'Review'
@@ -21,12 +34,6 @@ export default function ScheduleCard({ session, onOpenWorkspace }) {
     session.scheduleType ||
     'Session'
 
-  const studentList = session.students
-    ? session.students
-    : session.name
-    ? [session.name]
-    : ['Student']
-
   const handleEnterWorkspace = () => {
     if (onOpenWorkspace) {
       onOpenWorkspace(session)
@@ -34,6 +41,8 @@ export default function ScheduleCard({ session, onOpenWorkspace }) {
       window.open(session.sessionLink, '_blank', 'noopener,noreferrer')
     }
   }
+
+  const formattedDate = formatSessionDate(session.sessionDate)
 
   return (
     <div
@@ -56,31 +65,15 @@ export default function ScheduleCard({ session, onOpenWorkspace }) {
         </span>
       )}
 
-      <p className="text-sm text-gray-500 mb-4 flex items-center gap-1.5">
+      <p className="text-sm text-gray-500 mb-6 flex items-center gap-1.5 flex-wrap">
         <i className="fa-regular fa-clock"></i>
         <span>{formatSessionTime(session, ' - ', 'Upcoming')}</span>
-        {session.sessionDate && (
+        {formattedDate && (
           <span className="text-xs text-gray-400 ml-1">
-            ({new Date(session.sessionDate).toLocaleDateString()})
+            ({formattedDate})
           </span>
         )}
       </p>
-
-      <div className="bg-gray-50 rounded-lg p-3 mb-4">
-        <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">
-          {studentList.length > 1 ? 'Students' : 'Student'} ({studentList.length})
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          {studentList.map((name, idx) => (
-            <span
-              key={idx}
-              className="bg-white border border-gray-200 text-gray-700 text-xs font-medium px-2 py-1 rounded shadow-sm"
-            >
-              {name}
-            </span>
-          ))}
-        </div>
-      </div>
 
       <div className="mt-auto pt-2">
         <button

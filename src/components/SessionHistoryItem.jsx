@@ -1,20 +1,24 @@
 import StarRating from './StarRating.jsx'
 import { useSessionRatings, toSatisfaction, RATING_MAX } from '../hooks/useSessionRatings'
+import { formatSessionTime } from '../utils/sessionTime.js'
 
 export default function SessionHistoryItem({ session, onViewDetails, onOpenWorkspace }) {
   const { ratings, loading: ratingsLoading, error: ratingsError } = useSessionRatings(session.id)
 
   const title = session.title || session.lessons?.[0]?.name || session.name || 'Math Session'
+  const rawDate = session.sessionDate ? session.sessionDate.slice(0, 10) : null
   const date =
     session.date ||
-    (session.sessionDate
-      ? new Date(session.sessionDate).toLocaleDateString(undefined, {
+    (rawDate
+      ? new Date(`${rawDate}T12:00:00`).toLocaleDateString(undefined, {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
         year: 'numeric',
       })
       : 'Recent')
+
+  const timeDisplay = formatSessionTime(session, ' - ', '')
 
   const sessionType = session.type || session.sessionRelationalType || 'Session'
   const typeColor = session.typeColor || 'bg-red-50 text-math-red'
@@ -63,9 +67,18 @@ export default function SessionHistoryItem({ session, onViewDetails, onOpenWorks
           </span>
         </div>
         <h3 className="font-bold text-gray-900 text-xl leading-tight">{title}</h3>
-        <p className="text-sm text-gray-500 mt-2 font-medium">
-          <i className="fa-regular fa-calendar-check mr-1.5"></i> {date}
-        </p>
+        <div className="text-sm text-gray-500 mt-2 font-medium flex items-center gap-3 flex-wrap">
+          <span className="flex items-center gap-1.5">
+            <i className="fa-regular fa-calendar-check"></i>
+            <span>{date}</span>
+          </span>
+          {timeDisplay && (
+            <span className="flex items-center gap-1.5 text-gray-500">
+              <i className="fa-regular fa-clock"></i>
+              <span>{timeDisplay}</span>
+            </span>
+          )}
+        </div>
 
         {attendees.length > 0 && (
           <div className="mt-4 flex items-center gap-3">
