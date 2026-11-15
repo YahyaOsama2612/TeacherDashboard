@@ -163,6 +163,10 @@ export default function AppShell() {
             </span>
             <i className="t-me-txt fa-solid fa-chevron-right text-[10px] text-gray-300 ml-auto"></i>
           </NavLink>
+          <button type="button" onClick={logout} className="t-nav w-full !text-red-600 hover:!bg-red-50" title="Sign out">
+            <i className="fa-solid fa-arrow-right-from-bracket w-5 text-center"></i>
+            <span className="t-lbl">Sign out</span>
+          </button>
         </div>
       </aside>
 
