@@ -1,46 +1,58 @@
-# MathPortal — Teacher Dashboard (React)
+# MathPortal — Teacher Dashboard
 
-A React + Vite + Tailwind CSS conversion of the Math House teacher dashboard prototype.
+React 18 + Vite + Tailwind 3 + react-router-dom. Talks to the Math House backend (`Math_house-main`).
+
+## Run
+
+```bash
+npm install
+npm run dev        # uses .env.development → VITE_API_URL=http://localhost:3000
+npm run build      # uses .env.production  → VITE_API_URL=https://bcknd.mathshouse.net
+```
+
+For local testing, start the backend first and seed a demo teacher:
+`cd ../Math_house-main && npm run dev` and `npm run seed:teacher-demo` (the demo login is in
+`Math_house-main/src/seeds/teacherPortalDemo.ts`).
+
+## Screens (hash routes)
+
+| Route | Screen |
+|---|---|
+| `#/dashboard` | Today / tomorrow schedule, next session, week chart, latest feedback |
+| `#/sessions` | Upcoming / completed / cancelled sessions, cards or timetable |
+| `#/ratings` | Student ratings and comments per session |
+| `#/requests` | Cover requests and cancellation requests sent to admin |
+| `#/profile` | Profile, stats, weekly availability, previous sessions |
+| `#/workspace/:id` | Teaching workspace: students, meeting link, explanation PDF upload, PDF viewer |
 
 ## Structure
 
 ```
 src/
-  App.jsx                     Top-level state: active tab + modal
-  data.js                     Mock data (schedule, students, sessions, feedback)
-  index.css                   Tailwind directives + global styles
-  main.jsx                    React entry point
+  App.jsx                        Routes + auth gate + data provider
+  api/
+    axiosClient.js               Axios instance (base URL from VITE_API_URL, bearer token)
+    authApi.js                   Login / logout
+    sessionsApi.js               GET sessions, upload explanation PDF
+    portalApi.js                 Meeting link, attendance, requests, availability, notifications, profile
+  context/
+    AuthContext.jsx              Token + teacher in localStorage
+    TeacherDataContext.jsx       Loads sessions/requests/notifications/profile, actions, toast, modals
+  lib/
+    format.js                    Date / time helpers
+    sessions.js                  Maps backend sessions to the UI shape, type colours, filters
   components/
-    Header.jsx                Top nav bar with tab switching
-    ScheduleView.jsx          "My Schedule" tab
-    ScheduleCard.jsx          Single class card on the schedule tab
-    StudentsView.jsx          "My Students" tab
-    StudentCard.jsx           Single student rating card
-    SessionsView.jsx          "Past Sessions" tab
-    SessionHistoryItem.jsx    Single past-session row
-    FeedbackModal.jsx         "View Details" modal with per-student ratings
-    StarRating.jsx            Shared star-rating renderer (supports half stars)
-```
-
-## Getting started
-
-```bash
-npm install
-npm run dev
-```
-
-Then open the printed local URL (usually http://localhost:5173).
-
-## Build
-
-```bash
-npm run build
-npm run preview
+    layout/AppShell.jsx          Sidebar, header, notification bell, phone bottom bar, toast
+    modals/                      Meeting link, attendance, feedback, cancellation request, materials
+    SessionCard.jsx, AgendaRow.jsx, DocList.jsx, PdfFrame.jsx, ReviewCard.jsx, ui.jsx
+  pages/                         One file per screen
 ```
 
 ## Notes
 
-- All view-switching and modal open/close logic from the original inline `<script>` was moved into React state (`useState` in `App.jsx`) — no more `document.getElementById` / `classList` manipulation.
-- Card content (schedule items, students, past sessions, feedback) lives in `src/data.js` so it's easy to swap in real API data later — just replace the exported arrays/objects with fetched data.
-- FontAwesome and the Inter font are loaded via CDN `<link>` tags in `index.html`, same as the original prototype. Tailwind is now installed as a proper dependency (via `tailwind.config.js` + PostCSS) instead of the CDN `<script>` build.
-- Tailwind theme extensions (`math-red`, `math-blue`, `shadow-card`, etc.) were moved into `tailwind.config.js`.
+- Ratings are stored 1–10 by the backend and shown as 1–5 stars (`toStars` in `lib/sessions.js`).
+- Session types come from the backend (`Explanation`, `Re-Explanation`, `Mistakes`, `Exam`).
+- PDFs are downloaded and shown through a `blob:` URL (`PdfFrame.jsx`) because the backend sends
+  `X-Frame-Options: SAMEORIGIN`.
+- Marking a student "Attended" deducts one live session from their package and unlocks the lesson
+  (same logic as admin manual attendance).

@@ -1,6 +1,7 @@
 import axios from 'axios'
 
-const BASE_URL = 'https://bcknd.mathshouse.net'
+// Backend URL: set VITE_API_URL in .env.development / .env.production
+export const BASE_URL = import.meta.env.VITE_API_URL || 'https://bcknd.mathshouse.net'
 export const TOKEN_STORAGE_KEY = 'teacher_token'
 export const USER_STORAGE_KEY = 'teacher_profile'
 

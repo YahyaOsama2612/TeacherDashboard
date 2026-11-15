@@ -1,0 +1,186 @@
+import { useNavigate } from 'react-router-dom'
+import { useTeacherData } from '../context/TeacherDataContext'
+import { typeOf, avgRating, canTakeAttendance, attCounts } from '../lib/sessions'
+import { fmtDate, fmtTime, plural, todayISO } from '../lib/format'
+import { SMALL_BTN, StatusBadge, Stars } from './ui'
+import { ATT, AttendancePills } from './modals/AttendanceModal'
+
+const timeRange = (s) => `${fmtTime(s.start)} — ${fmtTime(s.end)}`
+
+function StudentChips({ s }) {
+  const shown = s.students.slice(0, 4)
+  const more = s.students.length - shown.length
+  const solo = s.students.length === 1
+  if (!s.students.length) return <p className="text-xs text-gray-400">No students assigned yet</p>
+  return (
+    <div className="flex flex-wrap gap-2">
+      {shown.map((st) => {
+        const k = ATT[st.attendance] ? st.attendance : null
+        const cls = k ? `${ATT[k].chip} font-semibold` : solo ? 'bg-math-red/10 text-math-red font-semibold' : 'bg-gray-100 text-gray-700 font-medium'
+        return (
+          <span key={st.id} className={`${cls} text-xs px-2.5 py-1 rounded-md`} title={k ? ATT[k].label : undefined}>
+            {k && <i className={`fa-solid ${ATT[k].icon} mr-1 text-[10px]`}></i>}{st.name}
+          </span>
+        )
+      })}
+      {more > 0 && <span className="bg-gray-100 text-gray-500 text-xs font-medium px-2.5 py-1 rounded-md">+{more}</span>}
+    </div>
+  )
+}
+
+export function AttendanceLine({ s }) {
+  if (s.status === 'cancelled') return null
+  if (!canTakeAttendance(s)) return <p className="text-[11px] text-gray-400 mt-2"><i className="fa-regular fa-clock mr-1"></i>Attendance opens on the session day</p>
+  if (!attCounts(s).marked) {
+    return s.status === 'completed'
+      ? <p className="text-[11px] font-semibold text-amber-600 mt-2"><i className="fa-solid fa-triangle-exclamation mr-1"></i>Attendance not taken yet</p>
+      : <p className="text-[11px] font-semibold text-gray-400 mt-2"><i className="fa-solid fa-clipboard-list mr-1"></i>Attendance not marked yet</p>
+  }
+  return <div className="flex flex-wrap gap-1.5 mt-2"><AttendancePills session={s} /></div>
+}
+
+function MeetingBlock({ s }) {
+  const { openModal } = useTeacherData()
+  if (s.meeting) {
+    return (
+      <>
+        <div className="flex items-center gap-2">
+          <a href={s.meeting} target="_blank" rel="noopener noreferrer" className="flex-grow bg-blue-50 text-math-blue border border-blue-200 hover:bg-blue-100 font-semibold py-2.5 rounded-xl transition-colors flex justify-center items-center gap-2 text-sm">
+            <i className="fa-solid fa-video"></i> Start Meeting
+          </a>
+          <button onClick={() => openModal('link', s.id)} className="w-10 h-10 shrink-0 rounded-xl border border-gray-200 text-gray-500 hover:text-math-blue hover:border-math-blue transition-colors" title="Change meeting link" aria-label="Change meeting link">
+            <i className="fa-solid fa-pen text-xs"></i>
+          </button>
+        </div>
+        <div className="text-[10px] text-math-success mt-1 text-center font-medium"><i className="fa-solid fa-check-circle mr-1"></i> Published to Student</div>
+      </>
+    )
+  }
+  return (
+    <button onClick={() => openModal('link', s.id)} className="w-full border-2 border-dashed border-gray-300 text-gray-500 hover:text-math-blue hover:border-math-blue hover:bg-blue-50 font-medium py-2.5 rounded-xl transition-all flex justify-center items-center gap-2 text-sm group">
+      <i className="fa-solid fa-link group-hover:scale-110 transition-transform"></i> Add Meeting Link
+    </button>
+  )
+}
+
+export function CancelRow({ s }) {
+  const { cancelRequests, openModal } = useTeacherData()
+  const c = cancelRequests.get(s.id)
+  if (c && c.status === 'pending') {
+    return <p className="text-[11px] text-amber-700 font-bold text-center mb-2"><i className="fa-solid fa-hourglass-half mr-1"></i> Cancellation requested — waiting for admin</p>
+  }
+  return (
+    <>
+      {c && c.status === 'rejected' && (
+        <p className="text-[11px] text-gray-500 text-center mb-1"><i className="fa-solid fa-circle-info mr-1"></i> Admin kept this session{c.adminReply ? `: ${c.adminReply}` : ''}</p>
+      )}
+      <button onClick={() => openModal('cancel', s.id)} className="w-full text-xs font-bold text-gray-400 hover:text-red-600 mb-1 py-2.5 rounded-lg hover:bg-red-50">
+        <i className="fa-solid fa-ban mr-1"></i> Request cancellation
+      </button>
+    </>
+  )
+}
+
+function CardActions({ s }) {
+  const { openModal } = useTeacherData()
+  return (
+    <div className="grid grid-cols-2 gap-2 mb-3">
+      <button onClick={() => openModal('attendance', s.id)} disabled={!canTakeAttendance(s)} title={canTakeAttendance(s) ? undefined : 'Attendance opens on the session day'} className={SMALL_BTN}>
+        <i className="fa-solid fa-clipboard-user"></i> Attendance
+      </button>
+      <button onClick={() => openModal('materials', s.id)} className={SMALL_BTN}>
+        <i className="fa-regular fa-eye"></i> Materials <span className="text-gray-400">{s.docs.length}</span>
+      </button>
+    </div>
+  )
+}
+
+export default function SessionCard({ s }) {
+  const { nextSession, openModal } = useTeacherData()
+  const navigate = useNavigate()
+  const T = typeOf(s.type)
+  const muted = s.status !== 'upcoming'
+  const isNext = nextSession?.id === s.id
+
+  const head = (
+    <>
+      <div className="flex justify-between items-start mb-3 gap-2">
+        <div className={`w-11 h-11 rounded-xl ${T.iconBox} flex items-center justify-center text-xl shrink-0`}><i className={`fa-solid ${T.icon}`}></i></div>
+        <StatusBadge s={s} isNext={isNext} />
+      </div>
+      <h2 className={`text-lg font-bold leading-snug ${muted ? 'text-gray-700' : 'text-gray-900'} mb-1`}>{T.label}</h2>
+      <p className="text-sm text-gray-500 mb-4 flex items-center gap-2"><i className="fa-regular fa-clock"></i> {s.date === todayISO() ? '' : `${fmtDate(s.date)} • `}{timeRange(s)}</p>
+      <div className={`${muted ? 'bg-white' : 'bg-gray-50'} rounded-xl p-3 mb-4 border border-gray-100`}>
+        <div className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">{s.type === 'Exam' ? 'Assessment' : 'Lesson'}</div>
+        <div className={`text-sm font-medium ${muted ? 'text-gray-700' : 'text-gray-900'} flex items-start gap-2`}>
+          <i className="fa-regular fa-circle-check text-math-success mt-0.5"></i>
+          <div>{s.lesson}<div className="text-xs text-gray-500 font-normal">{s.program} • {s.unit}</div></div>
+        </div>
+      </div>
+    </>
+  )
+  const students = (
+    <>
+      <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Assigned {s.studentCount === 1 ? 'Student' : 'Students'} ({s.studentCount})</div>
+      <StudentChips s={s} />
+      <AttendanceLine s={s} />
+    </>
+  )
+
+  if (s.status === 'upcoming') {
+    return (
+      <div className="bg-white rounded-2xl p-5 shadow-card border border-gray-100 flex flex-col hover:shadow-md transition-shadow">
+        {head}
+        <div className="mb-4 flex-grow">{students}<div className="mt-4"><MeetingBlock s={s} /></div></div>
+        <CardActions s={s} />
+        <CancelRow s={s} />
+        <button
+          onClick={() => navigate(`/workspace/${s.id}`)}
+          className={`${isNext ? 'bg-math-red hover:bg-math-red-hover text-white py-3 shadow-sm' : `bg-white border-2 ${T.btn} hover:text-white py-2.5`} w-full font-medium rounded-xl transition-colors flex justify-center items-center gap-2 group`}
+        >
+          Enter Workspace <i className="fa-solid fa-arrow-right transform group-hover:translate-x-1 transition-transform"></i>
+        </button>
+      </div>
+    )
+  }
+
+  if (s.status === 'completed') {
+    const n = s.reviews.length
+    const a = avgRating(s)
+    return (
+      <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200 flex flex-col">
+        {head}
+        <div className="mb-4 flex-grow">{students}</div>
+        <div className="bg-white rounded-xl p-3 mb-3 border border-gray-100 flex items-center justify-between gap-2">
+          {n ? (
+            <>
+              <div>
+                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Student Rating</div>
+                <div className="flex items-center gap-2"><Stars value={a} className="text-sm" /><span className="text-sm font-bold text-gray-900">{a.toFixed(1)}</span></div>
+              </div>
+              <span className="text-xs text-gray-500">{plural(n, 'rating')}</span>
+            </>
+          ) : <span className="text-xs text-gray-500">No ratings yet — students rate after class.</span>}
+        </div>
+        <CardActions s={s} />
+        {n ? (
+          <button onClick={() => openModal('feedback', s.id)} className="w-full bg-white border-2 border-math-success text-math-success hover:bg-math-success hover:text-white font-medium py-2.5 rounded-xl transition-colors flex justify-center items-center gap-2">
+            <i className="fa-solid fa-star"></i> View Ratings &amp; Feedback
+          </button>
+        ) : <button disabled className="w-full bg-gray-200 text-gray-500 font-medium py-3 rounded-xl cursor-not-allowed">Session Closed</button>}
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200 flex flex-col opacity-90">
+      {head}
+      <div className="bg-red-50 border border-red-100 rounded-xl p-3 mb-4 text-xs text-red-800">
+        <div className="font-bold mb-0.5 flex items-center gap-1.5"><i className="fa-solid fa-circle-info"></i> Cancelled by {s.cancel?.by}</div>
+        {s.cancel?.reason}
+      </div>
+      <div className="mb-4 flex-grow">{students}</div>
+      <button disabled className="w-full bg-gray-200 text-gray-500 font-medium py-3 rounded-xl cursor-not-allowed">Session Cancelled</button>
+    </div>
+  )
+}
