@@ -96,11 +96,16 @@ export function TeacherDataProvider({ children }) {
 
   const saveAttendance = useCallback(async (sessionId, record) => {
     const attendance = Object.entries(record).map(([studentId, status]) => ({ studentId, status }))
-    await portalApi.saveAttendance(sessionId, attendance)
+    const res = await portalApi.saveAttendance(sessionId, attendance)
+    // chargeStatus per student: "paid" | "free" | "unpaid" (attended with 0 balance)
+    const charged = Object.fromEntries((res?.data?.results || []).filter((r) => r.chargeStatus).map((r) => [r.studentId, r.chargeStatus]))
     setRawSessions((list) => list.map((s) => (s.id !== sessionId ? s : {
       ...s,
-      students: (s.students || []).map((st) => (record[st.id] ? { ...st, attendance: record[st.id] } : st)),
+      students: (s.students || []).map((st) => (record[st.id]
+        ? { ...st, attendance: record[st.id], chargeStatus: charged[st.id] ?? st.chargeStatus ?? null }
+        : st)),
     })))
+    return { unpaidCount: res?.data?.unpaidCount || 0 }
   }, [])
 
   const requestCancellation = useCallback(async (sessionId, reason) => {

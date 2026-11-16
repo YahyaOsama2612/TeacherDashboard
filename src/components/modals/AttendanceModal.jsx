@@ -47,9 +47,9 @@ export default function AttendanceModal({ session, onClose }) {
     setSaving(true)
     setError('')
     try {
-      await saveAttendance(session.id, draft)
+      const { unpaidCount } = await saveAttendance(session.id, draft)
       const c = attCounts(session, draft)
-      showToast(`Attendance saved — ${c.present} attended, ${c.absent} absent`)
+      showToast(`Attendance saved — ${c.present} attended, ${c.absent} absent${unpaidCount ? ` (${unpaidCount} not paid: no sessions left)` : ''}`)
       onClose()
     } catch (err) {
       setError(err?.message || 'Could not save attendance.')
@@ -81,7 +81,15 @@ export default function AttendanceModal({ session, onClose }) {
           const v = draft[st.id]
           return (
             <div key={st.id} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl border border-gray-100 ${v ? 'bg-white' : 'bg-gray-50/60'}`}>
-              <div className="flex items-center gap-3 min-w-0"><Avatar name={st.name} /><span className="text-sm font-bold text-gray-900 truncate">{st.name}</span></div>
+              <div className="flex items-center gap-3 min-w-0">
+                <Avatar name={st.name} />
+                <span className="text-sm font-bold text-gray-900 truncate">{st.name}</span>
+                {st.chargeStatus === 'unpaid' && (
+                  <span className="shrink-0 bg-amber-50 text-amber-700 text-[11px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap" title="Marked attended while the student had no live sessions left">
+                    <i className="fa-solid fa-circle-exclamation mr-1"></i>Not paid
+                  </span>
+                )}
+              </div>
               <div className="flex gap-1.5" role="group" aria-label={`Attendance for ${st.name}`}>
                 {ATT_KEYS.map((k) => (
                   <button
@@ -99,7 +107,8 @@ export default function AttendanceModal({ session, onClose }) {
         })}
         <p className="text-[11px] text-gray-400 pt-2">
           <i className="fa-solid fa-circle-info mr-1"></i>
-          Marking a student as attended uses one live session from their package and unlocks the lesson content for them.
+          Marking a student as attended uses one live session from their package (once per session) and unlocks the lesson content for them.
+          A student with no sessions left is still marked attended, flagged as “Not paid”.
         </p>
         {error && <p className="text-xs font-semibold text-red-600" role="alert">{error}</p>}
       </div>
