@@ -4,6 +4,7 @@ import AttendanceModal from './AttendanceModal'
 import FeedbackModal from './FeedbackModal'
 import CancelRequestModal from './CancelRequestModal'
 import MaterialsModal from './MaterialsModal'
+import AfterClassModal from './AfterClassModal'
 
 const MODALS = {
   link: MeetingLinkModal,
@@ -11,6 +12,7 @@ const MODALS = {
   feedback: FeedbackModal,
   cancel: CancelRequestModal,
   materials: MaterialsModal,
+  afterclass: AfterClassModal,
 }
 
 /** Renders whichever session modal is open (opened from any screen via openModal(kind, sessionId)). */

@@ -83,15 +83,62 @@ export function CancelRow({ s }) {
 
 function CardActions({ s }) {
   const { openModal } = useTeacherData()
+  const over = s.status === 'completed'
+  const attendance = (
+    <button onClick={() => openModal('attendance', s.id)} disabled={!canTakeAttendance(s)} title={canTakeAttendance(s) ? undefined : 'Attendance opens on the session day'} className={SMALL_BTN}>
+      <i className="fa-solid fa-clipboard-user"></i> Attendance
+    </button>
+  )
+  if (over) return <div className="grid mb-3">{attendance}</div>
   return (
     <div className="grid grid-cols-2 gap-2 mb-3">
-      <button onClick={() => openModal('attendance', s.id)} disabled={!canTakeAttendance(s)} title={canTakeAttendance(s) ? undefined : 'Attendance opens on the session day'} className={SMALL_BTN}>
-        <i className="fa-solid fa-clipboard-user"></i> Attendance
-      </button>
+      {attendance}
       <button onClick={() => openModal('materials', s.id)} className={SMALL_BTN}>
         <i className="fa-regular fa-eye"></i> Materials <span className="text-gray-400">{s.docs.length}</span>
       </button>
     </div>
+  )
+}
+
+/** Completed sessions: what the teacher shared after class (handwritten PDF + recording), one line each. */
+function AfterClassPanel({ s }) {
+  const { openModal } = useTeacherData()
+  const items = [
+    ['fa-solid fa-file-pen', 'Notes PDF', !!s.raw.teacher_explanation_pdf],
+    ['fa-solid fa-circle-play', 'Recording', !!s.raw.recordingLink],
+  ]
+  const shared = items.filter((x) => x[2]).length
+  const done = shared === items.length
+  return (
+    <button
+      type="button"
+      onClick={() => openModal('afterclass', s.id)}
+      className={`w-full text-left bg-white rounded-xl border ${done ? 'border-green-100' : 'border-amber-200'} p-3 mb-3 hover:border-math-red hover:shadow-sm transition-all group`}
+      title="Share your handwritten PDF and the class recording"
+    >
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5 min-w-0">
+          <i className="fa-solid fa-flag-checkered"></i><span className="truncate">After class</span>
+        </span>
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${done ? 'bg-green-50 text-math-success' : 'bg-amber-50 text-amber-700'}`}>{shared}/{items.length} shared</span>
+      </div>
+      <div className="space-y-1.5">
+        {items.map(([icon, label, ok]) => (
+          <div key={label} className="flex items-center gap-2 text-sm min-w-0">
+            <i className={`${icon} w-4 text-center ${ok ? 'text-math-success' : 'text-gray-300'}`}></i>
+            <span className="font-medium text-gray-700 flex-grow min-w-0 truncate">{label}</span>
+            <span className={`text-[11px] font-bold shrink-0 ${ok ? 'text-math-success' : 'text-amber-600'}`}>
+              {ok ? <><i className="fa-solid fa-check mr-1"></i>Shared</> : 'Missing'}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-2.5 pt-2.5 border-t border-gray-100 text-xs font-bold text-math-red flex items-center justify-center gap-1.5">
+        <i className={`fa-solid ${done ? 'fa-pen' : 'fa-cloud-arrow-up'}`}></i>
+        {done ? 'Edit notes & recording' : shared ? 'Add the missing one' : 'Add notes & recording'}
+        <i className="fa-solid fa-arrow-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
+      </div>
+    </button>
   )
 }
 
@@ -162,12 +209,19 @@ export default function SessionCard({ s }) {
             </>
           ) : <span className="text-xs text-gray-500">No ratings yet — students rate after class.</span>}
         </div>
+        <AfterClassPanel s={s} />
         <CardActions s={s} />
-        {n ? (
-          <button onClick={() => openModal('feedback', s.id)} className="w-full bg-white border-2 border-math-success text-math-success hover:bg-math-success hover:text-white font-medium py-2.5 rounded-xl transition-colors flex justify-center items-center gap-2">
+        {n > 0 && (
+          <button onClick={() => openModal('feedback', s.id)} className="w-full bg-white border-2 border-math-success text-math-success hover:bg-math-success hover:text-white font-medium py-2.5 rounded-xl transition-colors flex justify-center items-center gap-2 mb-2">
             <i className="fa-solid fa-star"></i> View Ratings &amp; Feedback
           </button>
-        ) : <button disabled className="w-full bg-gray-200 text-gray-500 font-medium py-3 rounded-xl cursor-not-allowed">Session Closed</button>}
+        )}
+        <button
+          onClick={() => navigate(`/workspace/${s.id}`)}
+          className={`w-full bg-white border-2 ${T.btn} hover:text-white font-medium py-2.5 rounded-xl transition-colors flex justify-center items-center gap-2 group`}
+        >
+          Open Session <i className="fa-solid fa-arrow-right transform group-hover:translate-x-1 transition-transform"></i>
+        </button>
       </div>
     )
   }

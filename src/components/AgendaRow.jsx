@@ -34,7 +34,7 @@ export default function AgendaRow({ s }) {
       <>
         {n > 0 && <span className="hidden sm:flex items-center gap-1.5 mr-1"><Stars value={a} /><b className="text-sm text-gray-900">{a.toFixed(1)}</b></span>}
         <button onClick={() => openModal('attendance', s.id)} className="t-ico" title="Attendance" aria-label="Attendance"><i className="fa-solid fa-clipboard-user"></i></button>
-        <button onClick={() => openModal('materials', s.id)} className="t-ico" title="Materials" aria-label="Materials"><i className="fa-regular fa-eye"></i></button>
+        <button onClick={() => openModal('afterclass', s.id)} className="t-ico" title="Notes & recording" aria-label="Notes and recording"><i className="fa-solid fa-flag-checkered"></i></button>
         {n > 0 && <button onClick={() => openModal('feedback', s.id)} className="inline-flex items-center gap-1.5 h-[34px] px-3 rounded-[10px] border border-green-200 bg-green-50 text-math-success text-xs font-bold hover:bg-green-100"><i className="fa-solid fa-star text-[10px]"></i> Feedback</button>}
       </>
     )

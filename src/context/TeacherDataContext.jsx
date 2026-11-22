@@ -62,12 +62,17 @@ export function TeacherDataProvider({ children }) {
     refreshAll()
   }, [refreshAll])
 
-  // Re-evaluate upcoming/completed every minute and poll notifications every 2 minutes.
+  // Re-evaluate upcoming/completed every minute. Every 2 minutes (and when the tab is opened again)
+  // pull notifications, sessions and requests, so a session the admin handed to another teacher,
+  // a new booking or a cancellation shows up without reloading the page.
   useEffect(() => {
     const tick = setInterval(() => setClock(Date.now()), 60 * 1000)
-    const poll = setInterval(() => loadNotifications().catch(() => {}), 2 * 60 * 1000)
-    return () => { clearInterval(tick); clearInterval(poll) }
-  }, [loadNotifications])
+    const sync = () => Promise.all([loadNotifications(), loadSessions(), loadRequests()]).catch(() => {})
+    const poll = setInterval(sync, 2 * 60 * 1000)
+    const onVisible = () => { if (document.visibilityState === "visible") sync() }
+    document.addEventListener("visibilitychange", onVisible)
+    return () => { clearInterval(tick); clearInterval(poll); document.removeEventListener("visibilitychange", onVisible) }
+  }, [loadNotifications, loadSessions, loadRequests])
 
   const sessions = useMemo(
     () => rawSessions.map((s) => mapSession(s, new Date(clock))).sort(byKey),
@@ -131,13 +136,16 @@ export function TeacherDataProvider({ children }) {
   const updateExplanationPdf = useCallback((sessionId, url) => {
     setRawSessions((list) => list.map((s) => (s.id === sessionId ? { ...s, teacher_explanation_pdf: url } : s)))
   }, [])
+  const updateRecordingLink = useCallback((sessionId, link) => {
+    setRawSessions((list) => list.map((s) => (s.id === sessionId ? { ...s, recordingLink: link } : s)))
+  }, [])
 
   const value = {
     loading, error, refreshAll, reloadSessions: loadSessions,
     sessions, byId, nextSession, requests, cancelRequests, pendingRequests,
     notifications, unreadNotifications, profile,
     setMeetingLink, saveAttendance, requestCancellation, requestCover, withdrawRequest,
-    markNotificationsRead, updateExplanationPdf,
+    markNotificationsRead, updateExplanationPdf, updateRecordingLink,
     toast, showToast,
     modal, openModal: (kind, sessionId) => setModal({ kind, sessionId }), closeModal: () => setModal(null),
   }
