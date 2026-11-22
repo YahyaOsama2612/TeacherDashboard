@@ -9,6 +9,7 @@ import { Avatar, Spinner } from '../components/ui'
 import { ATT, AttendancePills } from '../components/modals/AttendanceModal'
 import DocList from '../components/DocList'
 import PdfFrame from '../components/PdfFrame'
+import LessonVideos from '../components/LessonVideos'
 
 /** After class: the recording link (Google Drive), shared with the students who attended. */
 function RecordingBlock({ s }) {
@@ -192,9 +193,10 @@ export default function WorkspacePage() {
     )
   }
 
-  // after class the prep materials (blank / answer PDFs) stay closed: the workspace shows the students,
-  // the teacher's handwritten notes PDF and the recording link
+  // the teacher keeps the PDFs and lesson videos after class too; the session tab then becomes
+  // "After class" (attendance, the handwritten notes PDF and the recording link)
   const over = s.status === 'completed'
+  const notesView = over && tab === 'session'
   const notesPdf = s.raw.teacher_explanation_pdf
   const T = typeOf(s.type)
   const endSession = () => {
@@ -226,20 +228,30 @@ export default function WorkspacePage() {
       </div>
 
       <div className="flex flex-col lg:flex-row flex-grow overflow-hidden">
-        <div className={`w-full lg:w-[400px] bg-white border-r border-gray-200 flex flex-col ${over ? (notesPdf ? 'h-[55%]' : 'flex-grow lg:flex-grow-0') : 'h-[38%]'} lg:h-full overflow-hidden shrink-0 border-b lg:border-b-0`}>
-          <div className="flex border-b border-gray-200 shrink-0">
-            {(over ? [['session', 'fa-flag-checkered', 'After class', 'After class']] : [['session', 'fa-users-viewfinder', 'Session & Uploads', 'Session'], ['admin', 'fa-book-bookmark', 'Admin Resources', 'Resources']]).map(([key, icon, label, short]) => (
-              <button key={key} onClick={() => setTab(key)} className={`flex-1 py-3.5 text-sm flex justify-center items-center gap-2 border-b-2 ${tab === key ? 'font-bold text-math-red border-math-red bg-white' : 'font-medium text-gray-500 border-transparent bg-gray-50'}`}>
-                <i className={`fa-solid ${icon}`}></i> <span className="sm:hidden">{short}</span><span className="hidden sm:inline">{label}</span>
+        <div className={`w-full lg:w-[400px] bg-white border-r border-gray-200 flex flex-col ${notesView ? (notesPdf ? 'h-[55%]' : 'flex-grow lg:flex-grow-0') : tab === 'videos' ? 'h-auto' : 'h-[38%]'} lg:h-full overflow-hidden shrink-0 border-b lg:border-b-0`}>
+          <div className="flex border-b border-gray-200 shrink-0" role="tablist">
+            {[
+              over ? ['session', 'fa-flag-checkered', 'After class'] : ['session', 'fa-users-viewfinder', 'Session'],
+              ['admin', 'fa-file-pdf', `PDFs (${s.docs.length})`],
+              ['videos', 'fa-circle-play', 'Videos'],
+            ].map(([key, icon, label]) => (
+              <button key={key} role="tab" aria-selected={tab === key} onClick={() => setTab(key)} className={`flex-1 min-w-0 px-1 py-3.5 text-xs sm:text-sm flex justify-center items-center gap-1.5 border-b-2 whitespace-nowrap ${tab === key ? 'font-bold text-math-red border-math-red bg-white' : 'font-medium text-gray-500 border-transparent bg-gray-50'}`}>
+                <i className={`fa-solid ${icon}`}></i> <span className="truncate">{label}</span>
               </button>
             ))}
           </div>
-          <div className={`flex-grow overflow-y-auto p-5 ${tab === 'admin' ? 'bg-slate-50' : 'bg-white'}`}>
-            {tab === 'session' ? <SessionTab s={s} /> : <DocList docs={s.docs} active={viewing} onPick={pickDoc} />}
+          <div className={`flex-grow overflow-y-auto ${tab === 'videos' ? 'hidden lg:block p-5' : 'p-5'} ${tab === 'admin' ? 'bg-slate-50' : 'bg-white'}`}>
+            {tab === 'session' ? <SessionTab s={s} />
+              : tab === 'admin' ? <DocList docs={s.docs} active={viewing} onPick={pickDoc} />
+              : <p className="text-sm text-gray-500"><i className="fa-solid fa-circle-play mr-1 text-math-red"></i> The recorded lesson videos of this session — the same ones your students get. Pick one on the right.</p>}
           </div>
         </div>
 
-        {over ? (
+        {tab === 'videos' ? (
+        <div className="flex-grow flex flex-col bg-white min-h-0 overflow-y-auto lg:overflow-hidden">
+          <LessonVideos sessionId={s.id} />
+        </div>
+        ) : notesView ? (
         <div className={`flex-grow ${notesPdf ? 'flex' : 'hidden lg:flex'} flex-col bg-gray-100 relative min-h-0`}>
           <div className="bg-gray-800 text-white px-4 py-2.5 flex items-center gap-2 shrink-0 text-sm font-medium">
             <i className="fa-solid fa-file-pen"></i> Your notes PDF

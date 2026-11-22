@@ -83,16 +83,12 @@ export function CancelRow({ s }) {
 
 function CardActions({ s }) {
   const { openModal } = useTeacherData()
-  const over = s.status === 'completed'
-  const attendance = (
-    <button onClick={() => openModal('attendance', s.id)} disabled={!canTakeAttendance(s)} title={canTakeAttendance(s) ? undefined : 'Attendance opens on the session day'} className={SMALL_BTN}>
-      <i className="fa-solid fa-clipboard-user"></i> Attendance
-    </button>
-  )
-  if (over) return <div className="grid mb-3">{attendance}</div>
+  // PDFs and lesson videos stay open after class too (the After class panel sits below)
   return (
     <div className="grid grid-cols-2 gap-2 mb-3">
-      {attendance}
+      <button onClick={() => openModal('attendance', s.id)} disabled={!canTakeAttendance(s)} title={canTakeAttendance(s) ? undefined : 'Attendance opens on the session day'} className={SMALL_BTN}>
+        <i className="fa-solid fa-clipboard-user"></i> Attendance
+      </button>
       <button onClick={() => openModal('materials', s.id)} className={SMALL_BTN}>
         <i className="fa-regular fa-eye"></i> Materials <span className="text-gray-400">{s.docs.length}</span>
       </button>
