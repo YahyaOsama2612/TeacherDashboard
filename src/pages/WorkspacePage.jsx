@@ -243,13 +243,13 @@ export default function WorkspacePage() {
           <div className={`flex-grow overflow-y-auto ${tab === 'videos' ? 'hidden lg:block p-5' : 'p-5'} ${tab === 'admin' ? 'bg-slate-50' : 'bg-white'}`}>
             {tab === 'session' ? <SessionTab s={s} />
               : tab === 'admin' ? <DocList docs={s.docs} active={viewing} onPick={pickDoc} />
-              : <p className="text-sm text-gray-500"><i className="fa-solid fa-circle-play mr-1 text-math-red"></i> The recorded lesson videos of this session — the same ones your students get. Pick one on the right.</p>}
+              : <p className="text-sm text-gray-500"><i className="fa-solid fa-circle-play mr-1 text-math-red"></i> The recorded lesson videos of this session — the same ones your students get. Pick one from the list under the player.</p>}
           </div>
         </div>
 
         {tab === 'videos' ? (
-        <div className="flex-grow flex flex-col bg-white min-h-0 overflow-y-auto lg:overflow-hidden">
-          <LessonVideos sessionId={s.id} />
+        <div className="flex-grow flex flex-col bg-gray-50 min-h-0 overflow-hidden">
+          <LessonVideos sessionId={s.id} stacked />
         </div>
         ) : notesView ? (
         <div className={`flex-grow ${notesPdf ? 'flex' : 'hidden lg:flex'} flex-col bg-gray-100 relative min-h-0`}>

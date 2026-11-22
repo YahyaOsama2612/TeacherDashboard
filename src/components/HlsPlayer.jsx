@@ -25,14 +25,17 @@ export default function HlsPlayer({ src, title }) {
   }, [src])
 
   if (failed) {
+    const local = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname)
     return (
-      <div className="w-full h-full flex items-center justify-center text-center text-sm text-white/80 p-6 bg-black">
-        Couldn’t load this video. It plays on the live site (mathshouse.net) — on localhost Bunny may block it.
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center text-sm text-white/80 p-6 bg-black">
+        <i className="fa-solid fa-triangle-exclamation text-2xl text-white/40"></i>
+        <p>Couldn’t load this video.</p>
+        <p className="text-xs text-white/50">{local ? 'On localhost the video host may block it — it plays on the live site.' : 'Check your connection, then reopen the video.'}</p>
       </div>
     )
   }
   return (
-    <video ref={ref} controls controlsList="nodownload" onContextMenu={(e) => e.preventDefault()} title={title}
-      className="w-full h-full bg-black" />
+    <video ref={ref} controls playsInline controlsList="nodownload" onContextMenu={(e) => e.preventDefault()} title={title}
+      className="absolute inset-0 w-full h-full bg-black" />
   )
 }
