@@ -89,6 +89,11 @@ export default function AttendanceModal({ session, onClose }) {
                     <i className="fa-solid fa-circle-exclamation mr-1"></i>Not paid
                   </span>
                 )}
+                {!st.chargeStatus && st.liveBalance === 0 && (
+                  <span className="shrink-0 bg-red-50 text-red-700 text-[11px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap" title="This student has no live sessions left. You can still mark them attended — it will be recorded as Not paid. Tell the admin so they can renew.">
+                    <i className="fa-solid fa-triangle-exclamation mr-1"></i>0 sessions left
+                  </span>
+                )}
               </div>
               <div className="flex gap-1.5" role="group" aria-label={`Attendance for ${st.name}`}>
                 {ATT_KEYS.map((k) => (

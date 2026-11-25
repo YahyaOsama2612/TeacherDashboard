@@ -4,7 +4,7 @@ import LessonVideos from '../LessonVideos'
 import { fmtDate, fmtTime } from '../../lib/format'
 import { ProgramBadge, TypeBadge } from '../ui'
 import DocList from '../DocList'
-import PdfFrame from '../PdfFrame'
+import DocViewer, { isSlides } from '../DocViewer'
 
 /** Every PDF attached to a session, with a built-in viewer. */
 export default function MaterialsModal({ session: s, onClose }) {
@@ -25,7 +25,7 @@ export default function MaterialsModal({ session: s, onClose }) {
             <h3 id="mm-title" className="text-lg font-bold text-gray-900 truncate">{s.lesson} — Materials</h3>
             <p className="text-xs text-gray-500 mt-0.5">{fmtDate(s.date)} • {fmtTime(s.start)} — {fmtTime(s.end)}</p>
             <div className="flex gap-1 mt-3 bg-white border border-gray-200 rounded-xl p-1 w-fit" role="tablist">
-              {[['pdfs', 'fa-file-pdf', `PDFs (${docs.length})`], ['videos', 'fa-circle-play', 'Lesson videos']].map(([k, icon, label]) => (
+              {[['pdfs', 'fa-file-pdf', `Files (${docs.length})`], ['videos', 'fa-circle-play', 'Lesson videos']].map(([k, icon, label]) => (
                 <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold ${tab === k ? 'bg-math-red text-white' : 'text-gray-500 hover:text-gray-800'}`}>
                   <i className={`fa-solid ${icon} mr-1`}></i>{label}
@@ -49,11 +49,11 @@ export default function MaterialsModal({ session: s, onClose }) {
           <div className="flex-grow min-h-0 flex flex-col bg-gray-100">
             {doc ? (
               <>
-                <div className="bg-gray-800 text-white px-4 py-2 flex justify-between items-center gap-3 shrink-0">
+                <div className="bg-gray-800 text-white px-4 py-2.5 flex items-center gap-2 shrink-0">
+                  <i className={`fa-solid ${isSlides(doc.url) ? 'fa-file-powerpoint' : 'fa-file-pdf'}`}></i>
                   <span className="text-sm font-medium truncate">{doc.title}</span>
-                  <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded-md shrink-0"><i className="fa-solid fa-up-right-from-square mr-1"></i> Open</a>
                 </div>
-                <PdfFrame url={doc.url} title={doc.title} />
+                <DocViewer url={doc.url} title={doc.title} />
               </>
             ) : (
               <div className="flex-grow flex items-center justify-center text-sm text-gray-500 p-8 text-center">No materials are attached to this session yet.</div>

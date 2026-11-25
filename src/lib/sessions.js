@@ -41,7 +41,7 @@ export function mapSession(raw, now = new Date()) {
   if (raw.status === 'cancelled') status = 'cancelled'
   else if (endAt < now) status = 'completed'
 
-  const students = (raw.students || []).map((s) => ({ id: s.id, name: s.name, avatar: s.avatar, attendance: s.attendance, chargeStatus: s.chargeStatus ?? null }))
+  const students = (raw.students || []).map((s) => ({ id: s.id, name: s.name, avatar: s.avatar, attendance: s.attendance, chargeStatus: s.chargeStatus ?? null, liveBalance: s.liveBalance ?? null }))
 
   return {
     id: raw.id,

@@ -8,7 +8,7 @@ import { fmtTime, plural, relDay } from '../lib/format'
 import { Avatar, Spinner } from '../components/ui'
 import { ATT, AttendancePills } from '../components/modals/AttendanceModal'
 import DocList from '../components/DocList'
-import PdfFrame from '../components/PdfFrame'
+import DocViewer from '../components/DocViewer'
 import LessonVideos from '../components/LessonVideos'
 
 /** After class: the recording link (Google Drive), shared with the students who attended. */
@@ -232,7 +232,7 @@ export default function WorkspacePage() {
           <div className="flex border-b border-gray-200 shrink-0" role="tablist">
             {[
               over ? ['session', 'fa-flag-checkered', 'After class'] : ['session', 'fa-users-viewfinder', 'Session'],
-              ['admin', 'fa-file-pdf', `PDFs (${s.docs.length})`],
+              ['admin', 'fa-file-lines', `Files (${s.docs.length})`],
               ['videos', 'fa-circle-play', 'Videos'],
             ].map(([key, icon, label]) => (
               <button key={key} role="tab" aria-selected={tab === key} onClick={() => setTab(key)} className={`flex-1 min-w-0 px-1 py-3.5 text-xs sm:text-sm flex justify-center items-center gap-1.5 border-b-2 whitespace-nowrap ${tab === key ? 'font-bold text-math-red border-math-red bg-white' : 'font-medium text-gray-500 border-transparent bg-gray-50'}`}>
@@ -257,14 +257,14 @@ export default function WorkspacePage() {
             <i className="fa-solid fa-file-pen"></i> Your notes PDF
           </div>
           {notesPdf
-            ? <PdfFrame url={notesPdf} title="Your notes PDF" />
+            ? <DocViewer url={notesPdf} title="Your notes PDF" />
             : <div className="flex-grow flex flex-col items-center justify-center text-center p-8 text-gray-500"><i className="fa-solid fa-file-arrow-up text-4xl mb-3 text-gray-300"></i><p className="text-sm font-semibold text-gray-700">No notes PDF yet</p><p className="text-xs mt-1 max-w-xs">Upload what you wrote in class — it shows here and on the session page of every student who attended.</p></div>}
         </div>
         ) : (
         <div className="flex-grow flex flex-col bg-gray-100 relative min-h-0">
           <div className="bg-gray-800 text-white px-4 py-2 flex justify-between items-center gap-3 shrink-0">
-            <span className="text-sm font-medium truncate hidden sm:inline">Official MathPortal Embedded PDF Viewer</span>
-            <span className="text-sm font-medium sm:hidden">PDF Viewer</span>
+            <span className="text-sm font-medium truncate hidden sm:inline">Session files · view only</span>
+            <span className="text-sm font-medium sm:hidden">Files</span>
             <div className="bg-gray-900 rounded-lg p-1 flex shrink-0">
               {[['blank', 'Blank', ' Version'], ['answers', 'Model', ' Answers']].map(([key, a, b]) => (
                 <button key={key} onClick={() => { setVersion(key); setDocId(pair?.[key] || null) }} disabled={!pair?.[key]} className={`px-4 py-1.5 text-sm rounded-md disabled:opacity-40 ${version === key && pair?.[key] ? 'bg-gray-700 text-white shadow' : 'text-gray-400 hover:text-white'}`}>
@@ -274,7 +274,7 @@ export default function WorkspacePage() {
             </div>
           </div>
           {viewing
-            ? <PdfFrame url={viewing} title="Session PDF" />
+            ? <DocViewer url={viewing} title="Session PDF" />
             : <div className="flex-grow flex flex-col items-center justify-center text-center p-8 text-gray-500"><i className="fa-regular fa-file-pdf text-4xl mb-3 text-gray-300"></i><p className="text-sm">No PDF is attached to this session yet.</p></div>}
         </div>
         )}
