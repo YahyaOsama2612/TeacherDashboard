@@ -3,7 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useTeacherData } from '../context/TeacherDataContext'
 import sessionsApi from '../api/sessionsApi'
 import axiosClient from '../api/axiosClient'
-import { typeOf, canTakeAttendance } from '../lib/sessions'
+import { typeOf, canTakeAttendance, hasNoBalance } from '../lib/sessions'
+import { BalanceWarning } from '../components/SessionCard'
 import { fmtTime, plural, relDay } from '../lib/format'
 import { Avatar, Spinner } from '../components/ui'
 import { ATT, AttendancePills } from '../components/modals/AttendanceModal'
@@ -100,11 +101,13 @@ function SessionTab({ s }) {
           </button>
         </div>
         <div className="flex flex-wrap gap-1.5 mb-3"><AttendancePills session={s} /></div>
+        <BalanceWarning s={s} className="mb-3" />
         <div className="space-y-1.5">
           {s.students.length ? s.students.map((st) => (
-            <div key={st.id} className="flex items-center gap-3 p-2 rounded-xl border border-gray-100">
+            <div key={st.id} className={`flex items-center gap-3 p-2 rounded-xl border ${s.status === 'upcoming' && hasNoBalance(st) && st.attendance !== 'absent' ? 'border-red-200 bg-red-50/40' : 'border-gray-100'}`}>
               <Avatar name={st.name} />
               <span className="text-sm font-semibold text-gray-900 flex-grow truncate">{st.name}</span>
+              {s.status === 'upcoming' && hasNoBalance(st) && st.attendance !== 'absent' && <span className="shrink-0 bg-red-50 text-red-700 text-[11px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap"><i className="fa-solid fa-triangle-exclamation mr-1"></i>0 sessions left</span>}
               {ATT[st.attendance] && <span className={`${ATT[st.attendance].chip} text-[11px] font-bold px-2 py-0.5 rounded-md`}><i className={`fa-solid ${ATT[st.attendance].icon} mr-1`}></i>{ATT[st.attendance].label}</span>}
             </div>
           )) : <p className="text-sm text-gray-400">No students assigned yet.</p>}

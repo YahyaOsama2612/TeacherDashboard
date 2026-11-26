@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useTeacherData } from '../context/TeacherDataContext'
-import { typeOf, avgRating, canTakeAttendance, attCounts } from '../lib/sessions'
+import { typeOf, avgRating, canTakeAttendance, attCounts, noBalanceStudents } from '../lib/sessions'
 import { fmtDate, fmtTime, plural, todayISO } from '../lib/format'
 import { SMALL_BTN, StatusBadge, Stars } from './ui'
 import { ATT, AttendancePills } from './modals/AttendanceModal'
@@ -8,7 +8,10 @@ import { ATT, AttendancePills } from './modals/AttendanceModal'
 const timeRange = (s) => `${fmtTime(s.start)} — ${fmtTime(s.end)}`
 
 function StudentChips({ s }) {
-  const shown = s.students.slice(0, 4)
+  const empty = new Set(noBalanceStudents(s).map((st) => st.id))
+  // students with no sessions left are shown first, so they are never hidden behind "+N"
+  const ordered = [...s.students].sort((a, b) => Number(empty.has(b.id)) - Number(empty.has(a.id)))
+  const shown = ordered.slice(0, 4)
   const more = s.students.length - shown.length
   const solo = s.students.length === 1
   if (!s.students.length) return <p className="text-xs text-gray-400">No students assigned yet</p>
@@ -16,14 +19,28 @@ function StudentChips({ s }) {
     <div className="flex flex-wrap gap-2">
       {shown.map((st) => {
         const k = ATT[st.attendance] ? st.attendance : null
-        const cls = k ? `${ATT[k].chip} font-semibold` : solo ? 'bg-math-red/10 text-math-red font-semibold' : 'bg-gray-100 text-gray-700 font-medium'
+        const none = empty.has(st.id)
+        const cls = none ? 'bg-red-50 text-red-700 ring-1 ring-red-200 font-semibold' : k ? `${ATT[k].chip} font-semibold` : solo ? 'bg-math-red/10 text-math-red font-semibold' : 'bg-gray-100 text-gray-700 font-medium'
         return (
-          <span key={st.id} className={`${cls} text-xs px-2.5 py-1 rounded-md`} title={k ? ATT[k].label : undefined}>
-            {k && <i className={`fa-solid ${ATT[k].icon} mr-1 text-[10px]`}></i>}{st.name}
+          <span key={st.id} className={`${cls} text-xs px-2.5 py-1 rounded-md`} title={none ? '0 live sessions left — not paid for this session' : k ? ATT[k].label : undefined}>
+            {none ? <i className="fa-solid fa-triangle-exclamation mr-1 text-[10px]"></i> : k && <i className={`fa-solid ${ATT[k].icon} mr-1 text-[10px]`}></i>}{st.name}
           </span>
         )
       })}
       {more > 0 && <span className="bg-gray-100 text-gray-500 text-xs font-medium px-2.5 py-1 rounded-md">+{more}</span>}
+    </div>
+  )
+}
+
+/** "2 students have 0 sessions left" — so the teacher can tell admin before class. */
+export function BalanceWarning({ s, className = 'mt-2' }) {
+  const list = noBalanceStudents(s)
+  if (!list.length) return null
+  const names = list.map((st) => st.name)
+  return (
+    <div className={`${className} rounded-lg bg-red-50 border border-red-100 px-3 py-2 text-[11px] text-red-800`} role="note">
+      <p className="font-bold"><i className="fa-solid fa-triangle-exclamation mr-1"></i>{list.length === 1 ? '1 student has' : `${list.length} students have`} 0 sessions left</p>
+      <p className="mt-0.5">{names.slice(0, 3).join(', ')}{names.length > 3 ? ` +${names.length - 3} more` : ''} — they can&apos;t join by themselves. Ask the admin to renew before class; if they attend anyway, mark them attended and it&apos;s saved as Not paid.</p>
     </div>
   )
 }
@@ -166,6 +183,7 @@ export default function SessionCard({ s }) {
     <>
       <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Assigned {s.studentCount === 1 ? 'Student' : 'Students'} ({s.studentCount})</div>
       <StudentChips s={s} />
+      <BalanceWarning s={s} />
       <AttendanceLine s={s} />
     </>
   )

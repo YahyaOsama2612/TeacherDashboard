@@ -96,6 +96,15 @@ export const avgOf = (reviews) => (reviews.length ? reviews.reduce((n, r) => n +
 export const avgRating = (s) => avgOf(s.reviews || [])
 export const durMin = (s) => minutes(s.end) - minutes(s.start)
 
+/**
+ * Students of an upcoming session who have no live session for it: not charged yet and 0 sessions left.
+ * They can't press Join themselves; the teacher can still mark them attended (saved as "Not paid").
+ */
+export const noBalanceStudents = (s) => (s.status === 'upcoming'
+  ? (s.students || []).filter((st) => !st.chargeStatus && st.liveBalance === 0 && st.attendance !== 'absent')
+  : [])
+export const hasNoBalance = (st) => !st.chargeStatus && st.liveBalance === 0
+
 /** Attendance can be taken on the session day and after it. */
 export const canTakeAttendance = (s) => s.status === 'completed' || (s.status === 'upcoming' && s.date <= todayISO())
 

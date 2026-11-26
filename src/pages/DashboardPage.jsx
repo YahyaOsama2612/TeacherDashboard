@@ -8,6 +8,7 @@ import {
 } from '../lib/format'
 import { Avatar, SMALL_BTN, Stars } from '../components/ui'
 import AgendaRow from '../components/AgendaRow'
+import { BalanceWarning } from '../components/SessionCard'
 
 function AvatarStack({ names, max = 4 }) {
   const shown = names.slice(0, max)
@@ -67,6 +68,7 @@ function NextUp({ dayISO, dayLabel }) {
                 : <><i className="fa-solid fa-triangle-exclamation mr-1"></i>No meeting link yet</>}
             </span>
           </div>
+          <BalanceWarning s={up} className="mt-4" />
           <div className="flex flex-wrap gap-2 mt-5">
             <button onClick={() => navigate(`/workspace/${up.id}`)} className="t-hero-btn solid">Enter Workspace <i className="fa-solid fa-arrow-right"></i></button>
             {up.meeting
